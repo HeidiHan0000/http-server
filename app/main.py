@@ -4,9 +4,19 @@ def handle_request(client_socket):
     received_msg = client_socket.recv(1024)
     if not received_msg:
         return False
-    response = "HTTP/1.1 200 OK\r\n\r\n"
+    request = received_msg.decode().split(" ")
+    print(request)
+    response = ""
+    if len(request) >= 2:
+        type = request[0]
+        path = request[1]
+        http_version = request[2] # not quite but lets see what else we need this for
+        if type == "GET":
+            if path == "/":
+                response = "HTTP/1.1 200 OK\r\n\r\n"
+            else:
+                response = "HTTP/1.1 404 Not Found\r\n\r\n"   
     client_socket.send(response.encode())
-    print("Sent 200")
     return True
 
 def main():
