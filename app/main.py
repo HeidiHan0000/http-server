@@ -1,4 +1,4 @@
-import socket
+import socket, os
 
 CLRF = "\r\n"
 
@@ -11,12 +11,21 @@ def echo_response(string):
 def parse_header_user_agent(header_list):
     for h in header_list:
         # headers are case insensitive
+        # USE STARTSWITH
         if "user-agent" in h.lower():
             s = h[12:]
             return echo_response(s)
     print("no User Agent")
     return "uhoh"
 
+def get_file(file_path):
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        with open(file_path, "r") as file:
+            file_contents = file.read()
+        msg = f"HTTP/1.1 200 OK{clrf}Content-Type: application/octet-stream{clrf}Content-Length: {len(file_contents)}{clrf}{clrf}{file_contents}{clrf}"
+    else:
+        msg = f"HTTP/1.1 404 NOT FOUND{clrf}Content-Length: 0{clrf}{clrf}"
+    return msg
             
 def handle_request(client_socket):
     received_msg = client_socket.recv(1024)
@@ -39,6 +48,9 @@ def handle_request(client_socket):
                 response = echo_response(req_target[6:])
             elif len(req_target) >= 11 and req_target[:11] == "/user-agent":
                 response = parse_header_user_agent(req_headers)
+            elif req_target.startswith("/files/"):
+                file_path = req_target.replace("/files/", "")
+                response = get_file(file_path)
             else:
                 response = "HTTP/1.1 404 Not Found\r\n\r\n"   
     client_socket.send(response.encode())
