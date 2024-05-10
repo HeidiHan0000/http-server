@@ -8,6 +8,16 @@ def echo_response(string):
     len_body = str(len(string))
     return f"{status_line}{CLRF}{headers}{len_body}{CLRF}{CLRF}{string}"
 
+def parse_header_user_agent(header_list):
+    for h in header_list:
+        # headers are case insensitive
+        if "user-agent" in h.lower():
+            s = h[12:]
+            return echo_response(s)
+    print("no User Agent")
+    return "uhoh"
+
+            
 def handle_request(client_socket):
     received_msg = client_socket.recv(1024)
     if not received_msg:
@@ -27,6 +37,8 @@ def handle_request(client_socket):
                 response = "HTTP/1.1 200 OK\r\n\r\n"
             elif len(req_target) >= 6 and req_target[:6] == "/echo/":
                 response = echo_response(req_target[6:])
+            elif len(req_target) >= 11 and req_target[:11] == "/user-agent":
+                response = parse_header_user_agent(req_headers)
             else:
                 response = "HTTP/1.1 404 Not Found\r\n\r\n"   
     client_socket.send(response.encode())
