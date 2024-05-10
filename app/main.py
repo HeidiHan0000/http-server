@@ -1,19 +1,32 @@
 import socket
 
+CLRF = "\r\n"
+
+def echo_response(string):
+    status_line = "HTTP/1.1 200 OK"
+    headers = f"Content-Type: text/plain{CLRF}Content-Length: "
+    len_body = str(len(string))
+    return f"{status_line}{CLRF}{headers}{len_body}{CLRF}{CLRF}{string}"
+
 def handle_request(client_socket):
     received_msg = client_socket.recv(1024)
     if not received_msg:
         return False
-    request = received_msg.decode().split(" ")
-    print(request)
+    # Parse the request
+    request = received_msg.decode().split(CLRF)
+    req_start_line, req_headers = request[0], request[1:] # there whould be a body here too.. 
+    req_line = req_start_line.split(" ")
     response = ""
-    if len(request) >= 2:
-        type = request[0]
-        path = request[1]
-        http_version = request[2] # not quite but lets see what else we need this for
-        if type == "GET":
-            if path == "/":
+
+    if len(req_line) >= 3: # not sure if it is valid to have request lines shorter than this, just in case..
+        http_method = req_line[0]
+        req_target = req_line[1] # the path
+        http_version = req_line[2] 
+        if http_method == "GET":
+            if req_target == "/":
                 response = "HTTP/1.1 200 OK\r\n\r\n"
+            elif len(req_target) >= 6 and req_target[:6] == "/echo/":
+                response = echo_response(req_target[6:])
             else:
                 response = "HTTP/1.1 404 Not Found\r\n\r\n"   
     client_socket.send(response.encode())
