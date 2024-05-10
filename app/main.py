@@ -22,9 +22,9 @@ def get_file(file_path):
     if os.path.exists(file_path) and os.path.isfile(file_path):
         with open(file_path, "r") as file:
             file_contents = file.read()
-        msg = f"HTTP/1.1 200 OK{clrf}Content-Type: application/octet-stream{clrf}Content-Length: {len(file_contents)}{clrf}{clrf}{file_contents}{clrf}"
+        msg = f"HTTP/1.1 200 OK{CLRF}Content-Type: application/octet-stream{CLRF}Content-Length: {len(file_contents)}{CLRF}{CLRF}{file_contents}{CLRF}"
     else:
-        msg = f"HTTP/1.1 404 NOT FOUND{clrf}Content-Length: 0{clrf}{clrf}"
+        msg = f"HTTP/1.1 404 NOT FOUND{CLRF}Content-Length: 0{CLRF}{CLRF}"
     return msg
             
 def handle_request(client_socket):
