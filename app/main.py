@@ -1,6 +1,11 @@
-import socket, os
+import socket, os, sys
+from pathlib import Path
 
 CLRF = "\r\n"
+
+# for cleanup, lets create a request and response class
+# have default 404 error
+
 
 def echo_response(string):
     status_line = "HTTP/1.1 200 OK"
@@ -18,12 +23,27 @@ def parse_header_user_agent(header_list):
     print("no User Agent")
     return "uhoh"
 
-def get_file(file_path):
+def get_file(filename):
+    file_path = Path(sys.argv[2]) / filename
+    print(file_path)
+    file_path = str(file_path).replace("\\", "/")
+    # dirlist = os.listdir(some)
+    # print(dirlist)
+    file_path = Path(file_path)
+    if file_path.exists():
+        print("pls")
+    else:
+        print("SDfjlk")
     if os.path.exists(file_path) and os.path.isfile(file_path):
+    # try:
+        print("in try")
         with open(file_path, "r") as file:
             file_contents = file.read()
+            print("in read")
         msg = f"HTTP/1.1 200 OK{CLRF}Content-Type: application/octet-stream{CLRF}Content-Length: {len(file_contents)}{CLRF}{CLRF}{file_contents}{CLRF}"
     else:
+    # except Exception:
+        print("SDflkjflskgjlfkj")
         msg = f"HTTP/1.1 404 NOT FOUND{CLRF}Content-Length: 0{CLRF}{CLRF}"
     return msg
             
@@ -49,8 +69,8 @@ def handle_request(client_socket):
             elif len(req_target) >= 11 and req_target[:11] == "/user-agent":
                 response = parse_header_user_agent(req_headers)
             elif req_target.startswith("/files/"):
-                file_path = req_target.replace("/files/", "")
-                response = get_file(file_path)
+                filename = req_target.replace("/files/", "")
+                response = get_file(filename)
             else:
                 response = "HTTP/1.1 404 Not Found\r\n\r\n"   
     client_socket.send(response.encode())
