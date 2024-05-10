@@ -3,49 +3,33 @@ from pathlib import Path
 
 CLRF = "\r\n"
 
-# for cleanup, lets create a request and response class
-# have default 404 error
-
-
-def echo_response(string):
-    status_line = "HTTP/1.1 200 OK"
-    headers = f"Content-Type: text/plain{CLRF}Content-Length: "
-    len_body = str(len(string))
-    return f"{status_line}{CLRF}{headers}{len_body}{CLRF}{CLRF}{string}"
+def build_response(string, protocol_version="HTTP/1.1", code="200 OK", content_type="text/plain"):
+    response = (
+        f"{protocol_version} {code}\r\n"
+        f"Content-Type: {content_type}\r\n"
+        f"Content-Length: {str(len(string))}\r\n\r\n"
+        f"{string}"
+    )
+    return response
 
 def parse_header_user_agent(header_list):
     for h in header_list:
         # headers are case insensitive
-        # USE STARTSWITH
-        if "user-agent" in h.lower():
+        if h.lower().startswith("user-agent"):
             s = h[12:]
-            return echo_response(s)
-    print("no User Agent")
-    return "uhoh"
+            return build_response(s)
+    print("User Agent not in header")
+    return build_response("", code="400 Bad Request")
 
 def get_file(filename):
-    file_path = Path(sys.argv[2]) / filename
-    print(file_path)
-    file_path = str(file_path).replace("\\", "/")
-    # dirlist = os.listdir(some)
-    # print(dirlist)
+    file_path = str(Path(sys.argv[2]) / filename).replace("\\", "/") # was causing weird error
     file_path = Path(file_path)
-    if file_path.exists():
-        print("pls")
-    else:
-        print("SDfjlk")
     if os.path.exists(file_path) and os.path.isfile(file_path):
-    # try:
-        print("in try")
         with open(file_path, "r") as file:
             file_contents = file.read()
-            print("in read")
-        msg = f"HTTP/1.1 200 OK{CLRF}Content-Type: application/octet-stream{CLRF}Content-Length: {len(file_contents)}{CLRF}{CLRF}{file_contents}{CLRF}"
+        return build_response(file_contents, content_type="application/octet-stream")
     else:
-    # except Exception:
-        print("SDflkjflskgjlfkj")
-        msg = f"HTTP/1.1 404 NOT FOUND{CLRF}Content-Length: 0{CLRF}{CLRF}"
-    return msg
+        return build_response("", code="404 Not Found")
             
 def handle_request(client_socket):
     received_msg = client_socket.recv(1024)
@@ -57,22 +41,22 @@ def handle_request(client_socket):
     req_line = req_start_line.split(" ")
     response = ""
 
-    if len(req_line) >= 3: # not sure if it is valid to have request lines shorter than this, just in case..
+    if len(req_line) >= 3: # not sure if it is even valid to have request lines shorter than this, just in case..
         http_method = req_line[0]
         req_target = req_line[1] # the path
         http_version = req_line[2] 
         if http_method == "GET":
             if req_target == "/":
                 response = "HTTP/1.1 200 OK\r\n\r\n"
-            elif len(req_target) >= 6 and req_target[:6] == "/echo/":
-                response = echo_response(req_target[6:])
-            elif len(req_target) >= 11 and req_target[:11] == "/user-agent":
+            elif req_target.startswith("/echo/"):
+                response = build_response(req_target[6:])
+            elif req_target.startswith("/user-agent"):
                 response = parse_header_user_agent(req_headers)
             elif req_target.startswith("/files/"):
                 filename = req_target.replace("/files/", "")
                 response = get_file(filename)
             else:
-                response = "HTTP/1.1 404 Not Found\r\n\r\n"   
+                response = "HTTP/1.1 404 Not Found\r\n\r\n"
     client_socket.send(response.encode())
     return True
 
