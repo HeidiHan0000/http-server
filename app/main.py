@@ -2,15 +2,24 @@ import socket, os, sys, gzip
 from pathlib import Path
 
 def build_response(string, protocol_version="HTTP/1.1", code="200 OK", content_type="text/plain", content_encoding=None):
-    encoding = "" if not content_encoding else f"Content-Encoding: {content_encoding}\r\n"
-    response = (
-        f"{protocol_version} {code}\r\n"
-        f"{encoding}"
-        f"Content-Type: {content_type}\r\n"
-        f"Content-Length: {str(len(string))}\r\n\r\n"
-        f"{string}"
-    )
-    return response
+    # encoding = "" if not content_encoding else f"Content-Encoding: {content_encoding}\r\n"
+    if content_encoding:
+        response = (
+            f"{protocol_version} {code}\r\n"
+            f"Content-Encoding: {content_encoding}\r\n"
+            f"Content-Type: {content_type}\r\n"
+            f"Content-Length: {str(len(string))}\r\n\r\n"
+            f"{string}"
+        )
+        return response
+    else:
+        response = (
+            f"{protocol_version} {code}\r\n"
+            f"Content-Type: {content_type}\r\n"
+            f"Content-Length: {str(len(string))}\r\n\r\n"
+            f"{string}"
+        )
+        return response
 
 def parse_header_user_agent(header_list):
     for h in header_list:
@@ -45,6 +54,9 @@ def get_echo(echo_str, header_list):
             encodings = h[17:].split(", ")
             if "gzip" in encodings:
                 response_body = gzip.compress(bytes(echo_str, "utf-8"))
+                print(response_body)
+                plain = gzip.decompress(response_body).decode("utf-8")
+                print(plain)
                 return build_response(response_body, content_encoding="gzip")
     return build_response(echo_str)
 
