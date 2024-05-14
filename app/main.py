@@ -1,9 +1,12 @@
 import socket, os, sys
 from pathlib import Path
 
-def build_response(string, protocol_version="HTTP/1.1", code="200 OK", content_type="text/plain"):
+def build_response(string, protocol_version="HTTP/1.1", code="200 OK", content_type="text/plain", content_encoding=None):
+    encoding = "" if not content_encoding else f"Content-Encoding: {content_encoding}"
+    print(string)
     response = (
         f"{protocol_version} {code}\r\n"
+        f"{encoding}"
         f"Content-Type: {content_type}\r\n"
         f"Content-Length: {str(len(string))}\r\n\r\n"
         f"{string}"
@@ -37,6 +40,16 @@ def post_to_file(req_body, filename):
         print("Error writing to file", e)
     return build_response("", code="201 Created")
 
+def get_echo(echo_str, header_list):
+    print(echo_str)
+    for h in header_list:
+        if h.lower() == "accept-encoding": #17 char long
+            encoding = h[17:]
+            print(encoding)
+            if encoding == "gzip":
+                return build_response(echo_str, content_encoding="gzip")
+    return build_response(echo_str)
+
 def handle_request(client_socket):
     received_msg = client_socket.recv(1024)
     if not received_msg:
@@ -57,7 +70,7 @@ def handle_request(client_socket):
             if req_target == "/":
                 response = "HTTP/1.1 200 OK\r\n\r\n"
             elif req_target.startswith("/echo/"):
-                response = build_response(req_target[6:])
+                response = get_echo(req_target[6:], req_headers)
             elif req_target.startswith("/user-agent"):
                 response = parse_header_user_agent(req_headers)
             elif req_target.startswith("/files/"):
