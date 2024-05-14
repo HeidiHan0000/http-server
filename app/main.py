@@ -2,8 +2,7 @@ import socket, os, sys
 from pathlib import Path
 
 def build_response(string, protocol_version="HTTP/1.1", code="200 OK", content_type="text/plain", content_encoding=None):
-    encoding = "" if not content_encoding else f"Content-Encoding: {content_encoding}"
-    print(string)
+    encoding = "" if not content_encoding else f"Content-Encoding: {content_encoding}\r\n"
     response = (
         f"{protocol_version} {code}\r\n"
         f"{encoding}"
@@ -41,11 +40,11 @@ def post_to_file(req_body, filename):
     return build_response("", code="201 Created")
 
 def get_echo(echo_str, header_list):
-    print(echo_str)
+    print(echo_str, header_list)
     for h in header_list:
-        if h.lower() == "accept-encoding": #17 char long
+        print(h)
+        if h.lower().startswith("accept-encoding"): #17 char long
             encoding = h[17:]
-            
             print(encoding)
             if encoding == "gzip":
                 return build_response(echo_str, content_encoding="gzip")
