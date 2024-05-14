@@ -44,7 +44,7 @@ def get_echo(echo_str, header_list):
         if h.lower().startswith("accept-encoding"): #17 char long
             encodings = h[17:].split(", ")
             if "gzip" in encodings:
-                response_body = gzip.compress(echo_str.encode())
+                response_body = gzip.compress(bytes(echo_str, "utf-8"))
                 return build_response(response_body, content_encoding="gzip")
     return build_response(echo_str)
 
