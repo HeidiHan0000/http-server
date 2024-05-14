@@ -1,8 +1,6 @@
 import socket, os, sys
 from pathlib import Path
 
-CLRF = "\r\n"
-
 def build_response(string, protocol_version="HTTP/1.1", code="200 OK", content_type="text/plain"):
     response = (
         f"{protocol_version} {code}\r\n"
@@ -22,22 +20,32 @@ def parse_header_user_agent(header_list):
     return build_response("", code="400 Bad Request")
 
 def get_file(filename):
-    file_path = str(Path(sys.argv[2]) / filename).replace("\\", "/") # was causing weird error
-    file_path = Path(file_path)
-    if os.path.exists(file_path) and os.path.isfile(file_path):
-        with open(file_path, "r") as file:
+    filepath = Path(sys.argv[2]) / filename
+    if os.path.exists(filepath) and os.path.isfile(filepath):
+        with open(filepath, "r") as file:
             file_contents = file.read()
         return build_response(file_contents, content_type="application/octet-stream")
     else:
         return build_response("", code="404 Not Found")
-            
+
+def post_to_file(req_body, filename):
+    filepath = Path(sys.argv[2]) / filename
+    try:
+        with open(filepath, "w") as file:
+            file.write(req_body)
+    except Exception as e:
+        print("Error writing to file", e)
+    return build_response("", code="201 Created")
+
 def handle_request(client_socket):
     received_msg = client_socket.recv(1024)
     if not received_msg:
         return False
     # Parse the request
-    request = received_msg.decode().split(CLRF)
-    req_start_line, req_headers = request[0], request[1:] # there whould be a body here too.. 
+    header_body_split = received_msg.decode().split("\r\n\r\n")
+    req_body = header_body_split[1]
+    start_header_split = header_body_split[0].split("\r\n")
+    req_start_line, req_headers = start_header_split[0], start_header_split[1:]
     req_line = req_start_line.split(" ")
     response = ""
 
@@ -57,6 +65,11 @@ def handle_request(client_socket):
                 response = get_file(filename)
             else:
                 response = "HTTP/1.1 404 Not Found\r\n\r\n"
+        elif http_method == "POST":
+            if req_target.startswith("/files/"):
+                filename = req_target.replace("/files/", "")
+                response = post_to_file(req_body, filename)
+    
     client_socket.send(response.encode())
     return True
 
