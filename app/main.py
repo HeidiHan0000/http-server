@@ -1,4 +1,4 @@
-import socket, os, sys
+import socket, os, sys, gzip
 from pathlib import Path
 
 def build_response(string, protocol_version="HTTP/1.1", code="200 OK", content_type="text/plain", content_encoding=None):
@@ -40,14 +40,12 @@ def post_to_file(req_body, filename):
     return build_response("", code="201 Created")
 
 def get_echo(echo_str, header_list):
-    print(echo_str, header_list)
     for h in header_list:
-        print(h)
         if h.lower().startswith("accept-encoding"): #17 char long
             encodings = h[17:].split(", ")
-            print(encodings)
             if "gzip" in encodings:
-                return build_response(echo_str, content_encoding="gzip")
+                response_body = gzip.compress(echo_str.encode())
+                return build_response(response_body, content_encoding="gzip")
     return build_response(echo_str)
 
 def handle_request(client_socket):
