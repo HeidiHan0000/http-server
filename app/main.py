@@ -1,15 +1,43 @@
-import socket, os, sys, gzip
+import socket, os, sys, gzip, binascii
 from pathlib import Path
 
 def build_response(string, protocol_version="HTTP/1.1", code="200 OK", content_type="text/plain", content_encoding=None):
     # encoding = "" if not content_encoding else f"Content-Encoding: {content_encoding}\r\n"
     encoding = "" if not content_encoding else f"Content-Encoding: gzip\r\n"
+    newString = string
+    if content_encoding:
+        print(type(string))
+        print(str(string))
+        # string = str(string)
+        hex_string = binascii.hexlify(string).decode()
+        formatted_hex_string = ''.join([hex_string[i:i+2] for i in range(0, len(hex_string), 2)])
+        print(formatted_hex_string)
+        newString = formatted_hex_string
+        compressed_data = bytes.fromhex(formatted_hex_string)
+        decompressed_data = gzip.decompress(compressed_data)
+
+        print(decompressed_data)
+        print(compressed_data)
+        string = formatted_hex_string
+
+        # string = string[2:]
+        # newString = str(string).split('\\x')
+        # print("".join(newString))
+        # print(string)
+        # # string.replace("\x", "")
+        # print(string)
+
+        # try:
+            
+        # except Exception as e:
+        #     print("sdlfkj",  e)
+    length = str(len(string)) if not content_encoding else str(int(len(string)/2))
     response = (
         f"{protocol_version} {code}\r\n"
         f"{encoding}"
         f"Content-Type: {content_type}\r\n"
-        f"Content-Length: {str(len(string))}\r\n\r\n"
-        f"{string}"
+        f"Content-Length: {length}\r\n\r\n"
+        f"{newString}"
     )
     print(response)
     return response
@@ -46,11 +74,10 @@ def get_echo(echo_str, header_list):
         if h.lower().startswith("accept-encoding"): #17 char long
             encodings = h[17:].split(", ")
             if "gzip" in encodings:
-                response_body = gzip.compress(bytes(echo_str, "utf-8"))
+                response_body = gzip.compress(echo_str.encode())
                 print(response_body)
                 plain = gzip.decompress(response_body).decode("utf-8")
                 print(plain)
-                # response_body = "123456789012345678901234567890123456789012345678901234567890"
                 return build_response(response_body, content_encoding="gzip")
     return build_response(echo_str)
 
