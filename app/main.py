@@ -50,6 +50,7 @@ def get_echo(echo_str, header_list):
                 print(response_body)
                 plain = gzip.decompress(response_body).decode("utf-8")
                 print(plain)
+                # response_body = "123456789012345678901234567890123456789012345678901234567890"
                 return build_response(response_body, content_encoding="gzip")
     return build_response(echo_str)
 
